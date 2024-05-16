@@ -1,0 +1,93 @@
+const int trigPin = 2;   // Chân trig của cảm biến siêu âm
+const int echoPin = 3;   // Chân echo của cảm biến siêu âm
+const int motorPin1 = 9; // Chân 1 kết nối với động cơ motor (L298N)
+const int motorPin2 = 10;// Chân 2 kết nối với động cơ motor (L298N)
+const int ledPin = 4;    // Chân kết nối đèn LED
+const int buzzerPin = 5; // Chân kết nối buzzer
+const int flamePin = 6;  // Chân kết nối với cảm biến lửa
+
+// Khai báo biến cho lưu trữ khoảng cách và thời gian
+long duration;
+int distance;
+unsigned long previousMillis = 0; // Biến lưu giữ thời gian trước đó
+const long interval = 1000;        // Khoảng thời gian giữa các nhấp nháy (ms)
+bool ledState = LOW; // Trạng thái ban đầu của đèn LED
+
+void setup() {
+  // Khởi tạo cổng Serial để hiển thị thông tin
+  Serial.begin(9600);
+  
+  // Cấu hình chân làm INPUT hoặc OUTPUT
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(flamePin, INPUT);
+}
+
+void loop() {
+  // Lấy thời gian hiện tại
+  unsigned long currentMillis = millis();
+  
+  // Gửi xung siêu âm
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Đọc thời gian trở về của xung siêu âm
+  duration = pulseIn(echoPin, HIGH);
+  
+  // Chuyển thời gian thành khoảng cách (đơn vị cm)
+  distance = duration * 0.034 / 2;
+  
+  // Hiển thị khoảng cách qua Serial Monitor
+  Serial.print("Distance: ");
+  Serial.println(distance);
+  
+  // Gửi trạng thái cảm biến lửa qua Serial
+  int flameState = digitalRead(flamePin);
+  if (flameState == LOW) {
+    Serial.println("Fire detected!");
+  } else {
+    Serial.println("No fire detected.");
+  }
+
+  // Kiểm tra nếu đã đủ thời gian để nhấp nháy
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis; // Lưu giữ thời gian hiện tại
+
+    // Đảo trạng thái của LED
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+    digitalWrite(ledPin, ledState); // Bật hoặc tắt đèn LED
+  }
+
+  // Kiểm tra nếu khoảng cách nhỏ hơn 10cm
+  if (distance < 10) {
+    // Bật đèn LED
+    digitalWrite(ledPin, HIGH);
+    // Kêu buzzer
+    tone(buzzerPin, 1000); // Tạo âm thanh với tần số 1000 Hz
+    // Chạy động cơ motor
+    digitalWrite(motorPin1, HIGH);
+    digitalWrite(motorPin2, LOW);
+  } else {
+    // Tắt đèn LED
+    digitalWrite(ledPin, LOW);
+    // Tắt buzzer
+    noTone(buzzerPin);
+    // Tắt động cơ nếu khoảng cách lớn hơn hoặc bằng 10cm
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+  }
+
+  // Đợi 1 giây trước khi đọc trạng thái của cảm biến lửa một lần nữa
+  delay(1000);
+}

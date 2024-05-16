@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOT Data Visualization</title>
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #motorStatus, #fireDetectStatus {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        #motorStatus {
+            color: #4CAF50;
+        }
+
+        #fireDetectStatus {
+            color: #FF5722;
+        }
+
+        #myChart {
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IOT Data Visualization</h1>
+        <!-- Display motor status -->
+        <div id="motorStatus">Motor status: </div>
+        <!-- Display fire detection status -->
+        <div id="fireDetectStatus">Fire detect: </div>
+        <!-- Create a canvas to draw the chart -->
+        <canvas id="myChart" width="100" height="50"></canvas>
+    </div>
+
+    <script>
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Distance (cm)',
+                    data: [],
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        function fetchData() {
+            fetch('/api/data')
+            .then(response => response.json())
+            .then(data => {
+                // Get distance data from JSON response
+                const distances = data.distance;
+                // Get motor status and fire detection status
+                const motorStatus = data.motor_status;
+                const fireDetectStatus = data.fire_detect;
+                // Display motor status
+                document.getElementById('motorStatus').innerText = 'Motor status: ' + motorStatus;
+                // Display fire detection status
+                document.getElementById('fireDetectStatus').innerText = 'Fire detect: ' + fireDetectStatus;
+                // Update data on the chart
+                updateChart(distances);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function updateChart(distances) {
+            // Get current times
+            const now = new Date();
+            // Update x-axis label to current time
+            myChart.data.labels.push(now.toLocaleTimeString());
+            // Limit the number of x-axis labels to 10
+            if (myChart.data.labels.length > 10) {
+                myChart.data.labels.shift(); // Remove the first element
+            }
+            // Clear all old data on the y-axis
+            myChart.data.datasets[0].data = [];
+            // Update the latest distance data on the y-axis
+            myChart.data.datasets[0].data = distances.slice(-10).reverse(); // Reverse the order of the array
+            // Update the chart
+            myChart.update();
+        }
+
+        // Repeat the process of fetching data and updating the chart every second
+        setInterval(fetchData, 1000);
+    </script>
+</body>
+</html>
